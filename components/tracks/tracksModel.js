@@ -1,0 +1,30 @@
+const mongoose = require("mongoose");
+const { Schema } = mongoose;
+
+const tracksSchema = new Schema({
+  name: {
+    type: String,
+    required: true
+  },
+  artist: {
+    type: String,
+    required: true
+  },
+  album: {
+    type: String
+  },
+  cover: {
+    type: String
+  },
+  identifier: {
+    type: String,
+    required: true
+  },
+  uploadedByUser: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+    required: true
+  }
+}, {collection: "tracks"})
+
+module.exports = mongoose.model("Track", tracksSchema)
