@@ -1,15 +1,23 @@
 const express = require("express");
 const router = express.Router();
-const upload = require("../../services/configureMulter");
+const {
+	uploadTrackMiddleware,
+} = require("../../middlewares/multerMiddlewares");
 const trackControllers = require("./tracksControllers");
 const isAuth = require("../../middlewares/isAuth");
 
 router.get("/", trackControllers.getTracks);
 
-router.post("/upload", [isAuth, upload.single("track")], trackControllers.upload);
+router.post(
+	"/upload",
+	[isAuth, uploadTrackMiddleware.single("track")],
+	trackControllers.upload
+);
 
 router.get("/:id/mp3", trackControllers.getTrackMp3);
 
-router.get("/:id/download", trackControllers.dowload);
+router.get("/:id/download", trackControllers.download);
+
+router.delete("/delete", isAuth, trackControllers.delete);
 
 module.exports = router;

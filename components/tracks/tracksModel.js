@@ -25,6 +25,6 @@ const tracksSchema = new Schema({
     ref: "User",
     required: true
   }
-}, {collection: "tracks"})
+}, {collection: "tracks", timestamps: true})
 
 module.exports = mongoose.model("Track", tracksSchema)
