@@ -1,6 +1,3 @@
-if (process.env.NODE_ENV) {
-	require("./config");
-}
 const app = require("./app");
 const port = process.env.PORT;
 

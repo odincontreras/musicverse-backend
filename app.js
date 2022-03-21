@@ -1,3 +1,6 @@
+if (process.env.NODE_ENV) {
+	require("./config");
+}
 require("./services/db");
 const express = require("express");
 const cors = require("cors");
