@@ -1,5 +1,7 @@
 //# require config in develop mode
-// require("./config");
+if (process.env.DEVELOPING) {
+	require("./config");
+}
 require("./services/db");
 const express = require("express");
 const cors = require("cors");
