@@ -16,7 +16,13 @@ router.post(
 );
 router.post(
 	"/send-password-recovery-token",
+	isAuth,
 	usersControllers.sendPasswordRecoveryToken
+);
+router.get(
+	"/tracks-and-playlist-quantities",
+	isAuth,
+	usersControllers.tracksAndPlaylistsQuantities
 );
 router.patch("/update-password", usersControllers.updatePassword);
 router.post("/set-liked-track", isAuth, usersControllers.setLikedTrack);

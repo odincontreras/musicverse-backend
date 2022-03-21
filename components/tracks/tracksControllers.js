@@ -14,6 +14,7 @@ exports.upload = async (req, res, next) => {
 		}
 
 		const { name, artist } = req.body;
+
 		const formatedNameToDb = formatTrackStringToDb(name);
 		const formatedArtistToDb = formatTrackStringToDb(artist);
 
@@ -94,25 +95,41 @@ exports.getTracks = async (req, res, next) => {
 			: {};
 
 		//# si el limite y el offset son validos se realiza la paginacion
-		if (validLimit && validOffset) {
-			const tracks = await Track.find(toFind)
-				.skip(offset * limit)
-				.limit(limit)
-				.sort({ createdAt: -1 });
+		//# si el limite y el offset no son validos se envia las canciones con un limite de 20
+		const tracks = await Track.find(toFind)
+			.skip(validLimit && validOffset ? offset * limit : 0)
+			.limit(validLimit && validOffset ? limit : 20)
+			.sort({ createdAt: -1 });
+
+		const loggedUser = req.user;
+
+		//# si el usuario que solicito las tracks esta logeado se verificara cuales son las canciones que le gustan
+		if (loggedUser) {
+			const ckeckedUserLikedTracks = tracks.map((track) => {
+				const isLiked = loggedUser.likedTracks.some((likedTrack) =>
+					likedTrack.equals(track._id)
+				);
+				if (isLiked) {
+					return { ...track._doc, isLikedByLoggedUser: true };
+				}
+				return { ...track._doc, isLikedByLoggedUser: false };
+			});
 
 			return res.status(200).json({
-				tracks,
-				message: `Sended tracks with an offset of ${offset} and a limit of ${limit}, if you want a different number of tracks send a different limit and offset values.`,
+				tracks: ckeckedUserLikedTracks,
+				message:
+					validLimit && validOffset
+						? `Sended tracks with an offset of ${offset} and a limit of ${limit}, if you want a different number of tracks send a different limit and offset values.`
+						: `Sended tracks with a limit of 20, if you want a different number of tracks send a limit and offset queries with valid values.`,
 			});
 		}
 
-		//# si el limite y el offset no son validos se envia las canciones con un limite de 20
-
-		const tracks = await Track.find(toFind).limit(20);
-
 		return res.status(200).json({
 			tracks,
-			message: `Sended tracks with a limit of 20, if you want a different number of tracks send a limit and offset queries with valid values.`,
+			message:
+				validLimit && validOffset
+					? `Sended tracks with an offset of ${offset} and a limit of ${limit}, if you want a different number of tracks send a different limit and offset values.`
+					: `Sended tracks with a limit of 20, if you want a different number of tracks send a limit and offset queries with valid values.`,
 		});
 	} catch (error) {
 		next(error);

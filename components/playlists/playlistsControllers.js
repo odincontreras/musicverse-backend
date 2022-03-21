@@ -49,7 +49,7 @@ exports.getPlaylists = async (req, res, next) => {
 		//# si el limite y el offset son validos se realiza la paginacion
 		if (validLimit && validOffset) {
 			const playlists = await Playlist.find({ public: true, ...toFind })
-				.skip(offset)
+				.skip(limit * offset)
 				.limit(limit)
 				.sort({ createdAt: -1 });
 
@@ -92,7 +92,7 @@ exports.getUserPlaylists = async (req, res, next) => {
 				createdByUser: userId,
 				...toFind,
 			})
-				.skip(offset)
+				.skip(limit * offset)
 				.limit(limit)
 				.sort({ createdAt: -1 });
 
@@ -102,6 +102,7 @@ exports.getUserPlaylists = async (req, res, next) => {
 
 			return res.status(200).json({
 				playlists,
+				userPlaylistsQuantity: req.user.playlists.length,
 				message: `Sended playlists with an offset of ${offset} and a limit of ${limit}, if you want a different number of playlists send a different limit and offset values.`,
 			});
 		}
@@ -155,21 +156,43 @@ exports.getPlaylistDetails = async (req, res, next) => {
 		const validLimit = checkQueryNumber(limit);
 		const validOffset = checkQueryNumber(offset);
 
+		//# si hay un query valido para search se hara una busqueda en base a lo solicitado si no es el caso se buscan las canciones en base a la fecha que se han creado
+		const search = req.query.search;
+		const toFind = search
+			? { name: { $regex: new RegExp(search), $options: "i" } }
+			: {};
+
 		//# si el limite y el offset son validos se realiza la paginac
 		if (validLimit && validOffset) {
-			const playlist = await Playlist.findOne({ _id: playlistId }).populate({
+			const playlistWithoutTracks = await Playlist.findOne({
+				_id: playlistId,
+			});
+
+			const tracksQuantity = playlistWithoutTracks.tracks.length;
+
+			const playlistWithTracks = await playlistWithoutTracks.populate({
 				path: "tracks",
 				options: {
 					limit,
-					skip: offset,
+					skip: limit * offset,
+					sort: { createdAt: -1 },
 				},
+				match: toFind,
 			});
 
-			const { _id, name, public, cover, createdByUser, tracks } = playlist;
+			const { _id, name, public, cover, createdByUser, tracks } =
+				playlistWithTracks;
 
 			return res.status(200).json({
-				message: `Sended ${playlist.name} playlist's data and playlist's tracks was sended with an offset of ${offset} and a limit of ${limit}, if you want a different number of tracks send a different limit and offset values.`,
-				playlistDetails: { _id, name, public, cover, createdByUser },
+				message: `Sended ${playlistWithTracks.name} playlist's data and playlist's tracks was sended with an offset of ${offset} and a limit of ${limit}, if you want a different number of tracks send a different limit and offset values.`,
+				playlistDetails: {
+					_id,
+					name,
+					public,
+					cover,
+					createdByUser,
+					tracksQuantity,
+				},
 				tracks,
 			});
 		}

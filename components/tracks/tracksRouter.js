@@ -5,8 +5,9 @@ const {
 } = require("../../middlewares/multerMiddlewares");
 const trackControllers = require("./tracksControllers");
 const isAuth = require("../../middlewares/isAuth");
+const checkIfExistAuthToken = require("../../middlewares/checkIfExistAuthToken");
 
-router.get("/", trackControllers.getTracks);
+router.get("/", checkIfExistAuthToken, trackControllers.getTracks);
 
 router.post(
 	"/upload",

@@ -237,8 +237,7 @@ exports.login = async (req, res, next) => {
 
 		const jwtSecret = process.env.JWT_SECRET;
 
-		const { username, _id, likedTracks, uploadedTracks, avatar, playlists } =
-			existUser;
+		const { username, _id, avatar } = existUser;
 
 		const token = jwt.sign(
 			{
@@ -257,9 +256,6 @@ exports.login = async (req, res, next) => {
 				email,
 				userId: _id,
 				avatar,
-				likedTracks,
-				uploadedTracksQuantity: uploadedTracks.length,
-				playlistsQuantity: playlists.length,
 			},
 			token,
 		});
@@ -273,15 +269,7 @@ exports.verifyToken = async (req, res, next) => {
 	try {
 		const user = req.user;
 
-		const {
-			username,
-			_id,
-			likedTracks,
-			uploadedTracks,
-			avatar,
-			playlists,
-			email,
-		} = user;
+		const { username, _id, avatar, email } = user;
 
 		res.status(202).json({
 			message: "Valid Token",
@@ -290,9 +278,6 @@ exports.verifyToken = async (req, res, next) => {
 				email,
 				userId: _id,
 				avatar,
-				likedTracks,
-				uploadedTracksQuantity: uploadedTracks.length,
-				playlistsQuantity: playlists.length,
 			},
 		});
 	} catch (error) {
@@ -345,6 +330,23 @@ exports.sendPasswordRecoveryToken = async (req, res, next) => {
 		//# Se envia respuesta
 		return res.status(200).json({
 			message: "Token sended ",
+		});
+	} catch (error) {
+		next(error);
+	}
+};
+
+//* Enpoint para obtener playlist and tracks quantities
+exports.tracksAndPlaylistsQuantities = async (req, res, next) => {
+	try {
+		const user = req.user;
+		const { uploadedTracks, likedTracks, playlists } = user;
+
+		return res.status(200).json({
+			message: "Tracks and playlists quantities sended.",
+			uploadedTracksQuantity: uploadedTracks.length,
+			likedTracksQuantity: likedTracks.length,
+			playlistsQuantity: playlists.length,
 		});
 	} catch (error) {
 		next(error);
@@ -469,30 +471,12 @@ exports.getLikedTracks = async (req, res, next) => {
 			: {};
 
 		//# si el limite y el offset son validos se realiza la paginacion
-		if (validLimit && validOffset) {
-			const userWithLikedTracks = await req.user.populate({
-				path: "likedTracks",
-				options: {
-					limit,
-					skip: limit * offset,
-					sort: { createdAt: -1 },
-				},
-				match: toFind,
-			});
-
-			const { likedTracks } = userWithLikedTracks;
-
-			return res.status(200).json({
-				message: `Sended liked tracks with an offset of ${offset} and a limit of ${limit}, if you want a different number of tracks send a different limit and offset values.`,
-				tracks: likedTracks,
-			});
-		}
-
 		//# si el limite y el offset no son validos se envia las canciones con un limite de 20
 		const userWithLikedTracks = await req.user.populate({
 			path: "likedTracks",
 			options: {
-				limit: 20,
+				limit: validLimit && validOffset ? limit : 20,
+				skip: validLimit && validOffset ? offset * limit : 0,
 				sort: { createdAt: -1 },
 			},
 			match: toFind,
@@ -500,9 +484,17 @@ exports.getLikedTracks = async (req, res, next) => {
 
 		const { likedTracks } = userWithLikedTracks;
 
+		const withLikedByLoggedUser = likedTracks.map((track) => ({
+			...track._doc,
+			isLikedByLoggedUser: true,
+		}));
+
 		return res.status(200).json({
-			message: `Sended tracks with a limit of 20, if you want a different number of tracks send a limit and offset queries with valid values.`,
-			tracks: likedTracks,
+			message:
+				validLimit && validOffset
+					? `Sended liked tracks with an offset of ${offset} and a limit of ${limit}, if you want a different number of tracks send a different limit and offset values.`
+					: `Sended tracks with a limit of 20, if you want a different number of tracks send a limit and offset queries with valid values.`,
+			tracks: withLikedByLoggedUser,
 		});
 	} catch (error) {
 		next(error);
@@ -578,7 +570,7 @@ exports.uploadUserAvatar = async (req, res, next) => {
 
 		await user.save();
 
-		//# como se actualizo el avatar se elimina el avatar que tenia anteriormente el usuario 
+		//# como se actualizo el avatar se elimina el avatar que tenia anteriormente el usuario
 		if (previousAvatar) {
 			const oldAvatarFilePath = path.join(
 				process.cwd(),
