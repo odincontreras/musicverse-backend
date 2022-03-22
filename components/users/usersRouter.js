@@ -16,7 +16,6 @@ router.post(
 );
 router.post(
 	"/send-password-recovery-token",
-	isAuth,
 	usersControllers.sendPasswordRecoveryToken
 );
 router.get(
