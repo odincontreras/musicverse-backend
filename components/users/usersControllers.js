@@ -390,6 +390,18 @@ exports.updatePassword = async (req, res, next) => {
 			);
 		}
 
+		const newPasswordEqualsToOldPassword = await bcrypt.compare(
+			newPassword,
+			user.password
+		);
+
+		if(newPasswordEqualsToOldPassword) {
+			throwError(
+				"The new password cannot be the same as the old password!",
+				401
+			);
+		}
+
 		//# Se encripta la nueva contraseña, se guarda en el usuario y se remueve el token de confirmacion que se habia guardado en la db
 		const encryptPassword = await bcrypt.hash(newPassword, 10);
 
@@ -529,7 +541,7 @@ exports.getUploadedTracks = async (req, res, next) => {
 
 			const { uploadedTracks } = userWithUploadedTracks;
 
-			//# se verifica si de las canciones subidas por el usuario tambien han recibido like por parte de el 
+			//# se verifica si de las canciones subidas por el usuario tambien han recibido like por parte de el
 			const verifiedUploadedLikedTracks = uploadedTracks.map((track) => {
 				const isLiked = user.likedTracks.some((likedTrack) =>
 					likedTrack.equals(track._id)
