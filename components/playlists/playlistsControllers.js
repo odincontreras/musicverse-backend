@@ -288,7 +288,9 @@ exports.deletePlaylist = async (req, res, next) => {
 				playlistToDelete.cover
 			);
 
-			fs.unlinkSync(playlistToDeleteCoverFilePath);
+			if (fs.existsSync(playlistToDeleteCoverFilePath)) {
+				fs.unlinkSync(playlistToDeleteCoverFilePath);
+			}
 		}
 
 		// Se remueve la playlist del usuario
@@ -345,7 +347,10 @@ exports.updatePlaylist = async (req, res, next) => {
 				"playlistsCovers",
 				previousCustomCover
 			);
-			fs.unlinkSync(oldCoverFilePath);
+
+			if (fs.existsSync(oldCoverFilePath)) {
+				fs.unlinkSync(oldCoverFilePath);
+			}
 		}
 
 		return res.status(200).json({

@@ -578,7 +578,11 @@ exports.uploadUserAvatar = async (req, res, next) => {
 				"avatars",
 				previousAvatar
 			);
-			fs.unlinkSync(oldAvatarFilePath);
+			
+			//# Se verifica que exista el avatar y luego se elimina
+			if (fs.existsSync(oldAvatarFilePath)) {
+				fs.unlinkSync(oldAvatarFilePath);
+			}
 		}
 		return res.status(200).json({
 			message: "Success uploading avatar!",

@@ -161,7 +161,7 @@ exports.delete = async (req, res) => {
 		const { id } = req.body;
 		const user = req.user;
 
-		//# verifico que el usuario posea el id enviado como para de las canciones que ha subido, si no es el caso arrojo un error porque este usuario no fue el que subio la cancion
+		//# verifico que el usuario posea el id de la cancion entre las canciones que ha subido, si no es el caso arrojo un error porque este usuario no fue el que subio la cancion
 		const uploadedByUser = user.uploadedTracks.some((trackId) =>
 			trackId.equals(id)
 		);
@@ -192,8 +192,11 @@ exports.delete = async (req, res) => {
 			"tracks",
 			`${track.identifier}.mp3`
 		);
-
-		fs.unlinkSync(trackPath);
+		
+		//# si el archivo mp3 del track existe lo elimino
+		if (fs.existsSync(trackPath)) {
+			fs.unlinkSync(trackPath);
+		}
 
 		res.status(200).json({
 			message: "Track deleted",
