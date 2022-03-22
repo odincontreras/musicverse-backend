@@ -150,6 +150,7 @@ exports.getPlaylist = async (req, res, next) => {
 
 exports.getPlaylistDetails = async (req, res, next) => {
 	try {
+		const loggedUser = req.user;
 		const { playlistId } = req.params;
 		const limit = req.query.limit ? +req.query.limit : undefined;
 		const offset = req.query.offset ? +req.query.offset : undefined;
@@ -183,6 +184,20 @@ exports.getPlaylistDetails = async (req, res, next) => {
 			const { _id, name, public, cover, createdByUser, tracks } =
 				playlistWithTracks;
 
+			let verifiedLikedTracks;
+
+			if (loggedUser) {
+				verifiedLikedTracks = tracks.map((track) => {
+					const isLiked = loggedUser.likedTracks.some((likedTrack) =>
+						likedTrack.equals(track._id)
+					);
+					if (isLiked) {
+						return { ...track._doc, isLikedByLoggedUser: true };
+					}
+					return { ...track._doc, isLikedByLoggedUser: false };
+				});
+			}
+
 			return res.status(200).json({
 				message: `Sended ${playlistWithTracks.name} playlist's data and playlist's tracks was sended with an offset of ${offset} and a limit of ${limit}, if you want a different number of tracks send a different limit and offset values.`,
 				playlistDetails: {
@@ -193,7 +208,7 @@ exports.getPlaylistDetails = async (req, res, next) => {
 					createdByUser,
 					tracksQuantity,
 				},
-				tracks,
+				tracks: verifiedLikedTracks || tracks,
 			});
 		}
 

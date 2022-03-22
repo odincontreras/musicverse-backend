@@ -507,6 +507,8 @@ exports.getUploadedTracks = async (req, res, next) => {
 		const offset = req.query.offset ? +req.query.offset : undefined;
 		const validLimit = checkQueryNumber(limit);
 		const validOffset = checkQueryNumber(offset);
+		const user = req.user;
+
 		//# si hay un query valido para search se hara una busqueda en base a lo solicitado si no es el caso se buscan las canciones en base a la fecha que se han creado
 		const search = req.query.search;
 		const toFind = search
@@ -515,7 +517,7 @@ exports.getUploadedTracks = async (req, res, next) => {
 
 		//# si el limite y el offset son validos se realiza la paginacion
 		if (validLimit && validOffset) {
-			const userWithUploadedTracks = await req.user.populate({
+			const userWithUploadedTracks = await user.populate({
 				path: "uploadedTracks",
 				options: {
 					limit,
@@ -527,9 +529,20 @@ exports.getUploadedTracks = async (req, res, next) => {
 
 			const { uploadedTracks } = userWithUploadedTracks;
 
+			//# se verifica si de las canciones subidas por el usuario tambien han recibido like por parte de el 
+			const verifiedUploadedLikedTracks = uploadedTracks.map((track) => {
+				const isLiked = user.likedTracks.some((likedTrack) =>
+					likedTrack.equals(track._id)
+				);
+				if (isLiked) {
+					return { ...track._doc, isLikedByLoggedUser: true };
+				}
+				return { ...track._doc, isLikedByLoggedUser: false };
+			});
+
 			return res.status(200).json({
 				message: `Sended uploaded tracks with an offset of ${offset} and a limit of ${limit}, if you want a different number of tracks send a different limit and offset values.`,
-				tracks: uploadedTracks,
+				tracks: verifiedUploadedLikedTracks,
 			});
 		}
 
@@ -578,7 +591,7 @@ exports.uploadUserAvatar = async (req, res, next) => {
 				"avatars",
 				previousAvatar
 			);
-			
+
 			//# Se verifica que exista el avatar y luego se elimina
 			if (fs.existsSync(oldAvatarFilePath)) {
 				fs.unlinkSync(oldAvatarFilePath);

@@ -5,6 +5,7 @@ const {
 	uploadPlaylistCoverMiddleware,
 } = require("../../middlewares/multerMiddlewares");
 const playlistsControllers = require("./playlistsControllers");
+const checkIfExistAuthToken = require("../../middlewares/checkIfExistAuthToken");
 
 router.get("/get-playlists", playlistsControllers.getPlaylists);
 router.get(
@@ -14,6 +15,7 @@ router.get(
 );
 router.get(
 	"/get-playlist-details/:playlistId",
+	checkIfExistAuthToken,
 	playlistsControllers.getPlaylistDetails
 );
 router.post(
